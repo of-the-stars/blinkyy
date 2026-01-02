@@ -54,7 +54,7 @@
           src = craneLib.cleanCargoSource ./.;
           strictDeps = true;
 
-          cargoExtraArgs = "--release --target ${buildTarget}";
+          cargoExtraArgs = "--target ${buildTarget}";
 
           buildInputs = with pkgs; [
             pkgsCross.avr.buildPackages.gcc
