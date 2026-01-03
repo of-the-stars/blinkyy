@@ -42,7 +42,7 @@
               }
             );
 
-        craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
+        # craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
 
         naersk-package = pkgs.callPackage naersk {
           cargo = rust-toolchain;
@@ -50,21 +50,25 @@
           clippy = rust-toolchain;
         };
 
-        crane-package = craneLib.buildPackage {
-          src = craneLib.cleanCargoSource ./.;
-          strictDeps = true;
-
-          cargoExtraArgs = "--target ${buildTarget}";
-
-          buildInputs = with pkgs; [
-            pkgsCross.avr.buildPackages.gcc
-            ravedude
-          ];
-        };
+        # crane-package = craneLib.buildPackage {
+        #   src = craneLib.cleanCargoSource ./.;
+        #   strictDeps = true;
+        #
+        #   cargoExtraArgs = "--target ${buildTarget}";
+        #
+        #   buildInputs = with pkgs; [
+        #     pkgsCross.avr.buildPackages.gcc
+        #     ravedude
+        #   ];
+        # };
       in
       {
-        devShells.default = craneLib.devShell {
-          packages = with pkgs; [ ];
+        devShells.default = pkgs.mkShell {
+          packages = with pkgs; [
+            pkgsCross.avr.buildPackages.gcc
+            ravedude
+            rust-toolchain
+          ];
 
           RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
@@ -72,12 +76,19 @@
 
         };
 
-        packages.default = crane-package;
-
         apps.default = flake-utils.lib.mkApp {
           drv = pkgs.writeShellScriptBin "flash-firmware" ''
-            ${crane-package}/bin/cargo run
+            ${rust-toolchain}/bin/cargo run
           '';
+        };
+
+        packages.default = naersk-package.buildPackage {
+          name = "blinkyy";
+          src = ./.;
+          buildInputs = with pkgs; [
+            pkgsCross.avr.buildPackages.gcc
+            ravedude
+          ];
         };
 
         formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;

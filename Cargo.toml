@@ -6,30 +6,30 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [[bin]]
+bench = false
 name = "blinkyy"
 test = false
-bench = false
 
 [dependencies]
+embedded-hal = "1.0"
+nb = "1.1.0"
 panic-halt = "1.0.0"
 ufmt = "0.2.0"
-nb = "1.1.0"
-embedded-hal = "1.0"
 
 [dependencies.arduino-hal]
-git = "https://github.com/rahix/avr-hal"
+git = "https://github.com/Rahix/avr-hal.git"
 rev = "ff4909c00ceee76d60f8bd7cc95bc0f3e2ab673f"
 features = ["arduino-uno"]
 
 # Configure the build for minimal size - AVRs have very little program memory
 [profile.dev]
-panic = "abort"
-lto = true
 opt-level = "s"
+lto = true
+panic = "abort"
 
 [profile.release]
-panic = "abort"
-codegen-units = 1
+opt-level = "s"
 debug = true
 lto = true
-opt-level = "s"
+panic = "abort"
+codegen-units = 1
