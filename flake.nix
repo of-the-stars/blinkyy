@@ -43,56 +43,122 @@
             );
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
-        crane-package = craneLib.buildPackage rec {
-          src = craneLib.cleanCargoSource ./.;
-          strictDeps = true;
+        # crane-package = craneLib.buildPackage {
+        #   src = craneLib.cleanCargoSource ./.;
+        #   strictDeps = false;
+        #   doCheck = false;
+        #   cargoArtifacts = if builtins.pathExists ./target then ./target else null;
+        #   buildPhaseCargoCommand = "cargo build --profile release";
+        #   doInstallCargoArtifacts = true;
+        #
+        #   NIX_DEBUG = 5;
+        #
+        #   # cargoArtifacts = null;
+        #   cargoExtraArgs = "--target ${buildTarget}";
+        #
+        #   buildInputs = with pkgs; [
+        #     pkgsCross.avr.buildPackages.gcc
+        #     ravedude
+        #   ];
+        #
+        #   # preBuild = ''
+        #   #   export CARGO_PROFILE_RELEASE_OPT_LEVEL="s"
+        #   #   export CARGO_PROFILE_RELEASE_DEBUG="true"
+        #   #   export CARGO_PROFILE_RELEASE_LTO="true"
+        #   #   export CARGO_PROFILE_RELEASE_PANIC="abort"
+        #   #   export CARGO_PROFILE_RELEASE_CODEGEN_UNITS="1"
+        #   # '';
+        #
+        #   configureCargoCommonVars = '''';
+        #   configurePhase = '''';
+        #   checkPhaseCargoCommand = ''
+        #     echo hiiiiii!!!
+        #   '';
+        #
+        #   preBuild = ''
+        #     # ${pkgs.bat}/bin/bat -pp /build/source/.cargo-home/config.toml
+        #   '';
+        #
+        #   installPhase = ''
+        #     runHook preInstall
+        #
+        #     mkdir -p $out/bin
+        #     cp target/avr-none/release/blinkyy.elf $out/bin
+        #
+        #     runHook postInstall
+        #   '';
+        # };
 
-          cargoExtraArgs = "--release --target ${buildTarget}";
+        # crane-package = craneLib.mkCargoDerivation {
+        #   src = craneLib.cleanCargoSource ./.;
+        #   cargoArtifacts = craneLib.buildDepsOnly rec {
+        #     src = craneLib.cleanCargoSource ./.;
+        #     cargoExtraArgs = "--target ${buildTarget}";
+        #     buildPhaseCargoCommand = ''
+        #       ${cargoBuildCommand} ${cargoExtraArgs}
+        #     '';
+        #     cargoBuildCommand = ''cargo build --release'';
+        #     doCheck = false;
+        #   };
+        #
+        #   checkPhase = '''';
+        #   buildPhaseCargoCommand = ''
+        #     cargo build --release --target avr-none --config ./.cargo/config.toml
+        #   '';
+        # };
+
+        naerskLib = pkgs.callPackage naersk {
+          cargo = rust-toolchain;
+          rustc = rust-toolchain;
+        };
+
+        naersk-package = naerskLib.buildPackage {
+          src = ./.;
+
+          copyTarget = true;
+          singleStep = true;
+
+          cargoBuildOptions =
+            opts:
+            opts
+            ++ [
+              # "--release"
+              ''--target ${buildTarget}''
+              "-vv"
+              ''--config 'build.rustflags=["-C", "target-cpu=atmega328p"]' ''
+              ''--config profile.release.opt-level=\"s\" ''
+              ''--config profile.release.debug=true''
+              ''--config profile.release.lto=true''
+              ''--config profile.release.codegen-units=1''
+              ''--config profile.release.panic=\"abort\"''
+              "--keep-going"
+            ];
+
+          CARGO_INCREMENTAL = 0;
 
           buildInputs = with pkgs; [
-            pkgsCross.avr.buildPackages.gcc
             ravedude
+            rust-toolchain
           ];
 
-          preBuild = ''
-            export CARGO_PROFILE_RELEASE_OPT_LEVEL="s"
-            export CARGO_PROFILE_RELEASE_DEBUG="true"
-            export CARGO_PROFILE_RELEASE_LTO="true"
-            export CARGO_PROFILE_RELEASE_PANIC="abort"
-            export CARGO_PROFILE_RELEASE_CODEGEN_UNITS="1"
-          '';
-
-          buildPhase = ''
-            runHook preBuild
-
-            cargo build ${cargoExtraArgs}
-
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
-
-            mkdir -p $out/bin
-            cp target/avr-none/release/blinkyy.elf $out/bin
-
-            runHook postInstall 
-          '';
-
-          # cargoArtifacts = if builtins.pathExists ./target then ./target else null;
-
-          doInstallCargoArtifacts = true;
-
+          nativeBuildInputs = with pkgs; [
+            pkgsCross.avr.gcc
+          ];
         };
 
       in
       {
-        devShells.default = craneLib.devShell {
+        devShells.default = pkgs.mkShell {
           # Inherits buildInputs from crane-package
-          inputsFrom = [ crane-package ];
+          # inputsFrom = [ crane-package ];
 
           # Additional packages
-          packages = [ ];
+          packages = with pkgs; [
+            pkgsCross.avr.buildPackages.gcc
+            ravedude
+            rust-toolchain
+            cargo-cache
+          ];
 
           RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
@@ -108,8 +174,8 @@
           # drv = crane-package;
         };
 
-        # packages.default = naersk-package;
-        packages.default = crane-package;
+        packages.default = naersk-package;
+        # packages.default = crane-package;
 
         # checks = { inherit crane-package; };
 

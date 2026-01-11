@@ -7,3 +7,16 @@ runner = "ravedude"
 
 [unstable]
 build-std = ["core"]
+
+# Configure the build for minimal size - AVRs have very little program memory
+[profile.dev]
+opt-level = "s"
+lto = true
+panic = "abort"
+
+[profile.release]
+opt-level = "s"
+debug = true
+lto = true
+panic = "abort"
+codegen-units = 1

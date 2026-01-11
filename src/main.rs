@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-
+#[allow(warnings)]
 use panic_halt as _;
 
 #[arduino_hal::entry]
