@@ -1,0 +1,23 @@
+cargoArtifacts not set, will not reuse any cargo artifacts
+Running phase: unpackPhase
+@nix { "action": "setPhase", "phase": "unpackPhase" }
+unpacking source archive /nix/store/jcihzyzlb7d9s7jrwlzfxry2ag9in8zc-source
+source root is source
+Running phase: patchPhase
+@nix { "action": "setPhase", "phase": "patchPhase" }
+Executing configureCargoCommonVars
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+@nix { "action": "setPhase", "phase": "updateAutotoolsGnuConfigScriptsPhase" }
+Running phase: configurePhase
+@nix { "action": "setPhase", "phase": "configurePhase" }
+will append /build/source/.cargo-home/config.toml with contents of /nix/store/sxmmc0l8dfiikv8g80aqbcdgvx0nyagv-vendor-cargo-deps/config.toml
+default configurePhase, nothing to do
+Running phase: buildPhase
+@nix { "action": "setPhase", "phase": "buildPhase" }
++++ command cargo --version
+cargo 1.94.0-nightly (b54051b15 2025-12-30)
++++ command cargo check --release --target avr-none --all-targets
+[1m[91merror[0m: no matching package named `rustc-literal-escaper` found
+location searched: directory source `/nix/store/sxmmc0l8dfiikv8g80aqbcdgvx0nyagv-vendor-cargo-deps/c19b7c6f923b580ac259164a89f2577984ad5ab09ee9d583b888f934adbbe8d0` (which is replacing registry `crates-io`)
+required by package `proc_macro v0.0.0 (/nix/store/z38nbm63wv4pfq7bhhlg5z9wv6zd81gp-rust-minimal-1.94.0-nightly-2026-01-01/lib/rustlib/src/rust/library/proc_macro)`
+    ... which satisfies path dependency `proc_macro` (locked to 0.0.0) of package `sysroot v0.0.0 (/nix/store/z38nbm63wv4pfq7bhhlg5z9wv6zd81gp-rust-minimal-1.94.0-nightly-2026-01-01/lib/rustlib/src/rust/library/sysroot)`

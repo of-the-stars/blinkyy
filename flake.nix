@@ -42,33 +42,57 @@
               }
             );
 
-        # craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
+        craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
+        crane-package = craneLib.buildPackage rec {
+          src = craneLib.cleanCargoSource ./.;
+          strictDeps = true;
 
-        naersk-package = pkgs.callPackage naersk {
-          cargo = rust-toolchain;
-          rustc = rust-toolchain;
-          clippy = rust-toolchain;
-        };
+          cargoExtraArgs = "--release --target ${buildTarget}";
 
-        # crane-package = craneLib.buildPackage {
-        #   src = craneLib.cleanCargoSource ./.;
-        #   strictDeps = true;
-        #
-        #   cargoExtraArgs = "--target ${buildTarget}";
-        #
-        #   buildInputs = with pkgs; [
-        #     pkgsCross.avr.buildPackages.gcc
-        #     ravedude
-        #   ];
-        # };
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
+          buildInputs = with pkgs; [
             pkgsCross.avr.buildPackages.gcc
             ravedude
-            rust-toolchain
           ];
+
+          preBuild = ''
+            export CARGO_PROFILE_RELEASE_OPT_LEVEL="s"
+            export CARGO_PROFILE_RELEASE_DEBUG="true"
+            export CARGO_PROFILE_RELEASE_LTO="true"
+            export CARGO_PROFILE_RELEASE_PANIC="abort"
+            export CARGO_PROFILE_RELEASE_CODEGEN_UNITS="1"
+          '';
+
+          buildPhase = ''
+            runHook preBuild
+
+            cargo build ${cargoExtraArgs}
+
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+
+            mkdir -p $out/bin
+            cp target/avr-none/release/blinkyy.elf $out/bin
+
+            runHook postInstall 
+          '';
+
+          # cargoArtifacts = if builtins.pathExists ./target then ./target else null;
+
+          doInstallCargoArtifacts = true;
+
+        };
+
+      in
+      {
+        devShells.default = craneLib.devShell {
+          # Inherits buildInputs from crane-package
+          inputsFrom = [ crane-package ];
+
+          # Additional packages
+          packages = [ ];
 
           RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
 
@@ -78,18 +102,16 @@
 
         apps.default = flake-utils.lib.mkApp {
           drv = pkgs.writeShellScriptBin "flash-firmware" ''
-            ${rust-toolchain}/bin/cargo run
+            ${pkgs.ravedude}/bin/ravedude -c -b 57600 $out/bin
           '';
+
+          # drv = crane-package;
         };
 
-        packages.default = naersk-package.buildPackage {
-          name = "blinkyy";
-          src = ./.;
-          buildInputs = with pkgs; [
-            pkgsCross.avr.buildPackages.gcc
-            ravedude
-          ];
-        };
+        # packages.default = naersk-package;
+        packages.default = crane-package;
+
+        # checks = { inherit crane-package; };
 
         formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
       }
