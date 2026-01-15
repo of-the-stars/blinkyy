@@ -74,6 +74,7 @@
             CARGO_BUILD_TARGET = "${buildTarget}";
             CARGO_BUILD_INCREMENTAL = "false";
             RUSTFLAGS = "-C target-cpu=atmega328p -C panic=abort";
+            # CARGO_TARGET_AVR_NONE_LINKER = "${pkgs.pkgsCross.avr.buildPackages.gcc}/bin/avr-gcc";
             CARGO_TARGET_AVR_NONE_LINKER = "${pkgs.pkgsCross.avr.stdenv.cc}/bin/${pkgs.pkgsCross.avr.stdenv.cc.targetPrefix}cc";
           };
         };
@@ -146,6 +147,7 @@
           packages = with pkgs; [
             rust-toolchain
             cargo-cache
+            # cargo-nono
           ];
 
           env = {
@@ -157,20 +159,28 @@
 
         };
 
-        apps.default = flake-utils.lib.mkApp {
-          # drv = pkgs.writeShellScriptBin "flash-arduino-uno" ''
-          #   ${pkgs.ravedude}/bin/ravedude -c -b 57600 $out/bin
-          # '';
-          drv = crane-package;
-        };
-
         apps.updateSrc = flake-utils.lib.mkApp {
           drv = pkgs.writeShellScriptBin "update-rust-src-lockfile" ''
             cp "${rust-toolchain}"/lib/rustlib/src/rust/library/Cargo.lock ./toolchain/.
           '';
         };
 
-        packages.default = crane-package;
+        packages.default = pkgs.writeTextFile {
+          name = "blinkyy";
+          executable = true;
+          destination = "/bin/blikyy";
+          text =
+            let
+              binPath = pkgs.lib.mkBinPath [
+                pkgs.ravedude
+              ];
+            in
+            ''
+              #!{pkgs.runtimeShell}
+              export PATH="${binPath}:$PATH"
+              ravedude -c -b 57600 $out/bin/blinkyy.elf
+            '';
+        };
 
         formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
       }
