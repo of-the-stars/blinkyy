@@ -67,6 +67,7 @@
 
           buildInputs = with pkgs; [
             pkgsCross.avr.buildPackages.gcc
+            ravedude
           ];
 
           # '-Z build-std=core' is required because precompiled artifacts aren't available for avr-none
@@ -117,6 +118,7 @@
             doNotPostBuildInstallCargoBinaries = true;
             installPhaseCommand = ''
               mkdir -p $out/bin
+              cp ./Ravedude.toml $out/.
               cp ./target/avr-none/release/*.elf $out/bin/binary.elf
             '';
           }
@@ -127,9 +129,11 @@
           name = pname;
           runtimeInputs = with pkgs; [
             ravedude
+            pkgsCross.avr.buildPackages.gcc
+            avrdude
           ];
           text = ''
-            ravedude -c -b 57600 ${crane-package}/bin/binary.elf
+            CARGO_MANIFEST_DIR=${crane-package} ravedude ${crane-package}/bin/binary.elf
           '';
         };
       in
