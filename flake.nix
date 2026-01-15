@@ -42,43 +42,39 @@
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
 
-        cleanedSrc = pkgs.lib.cleanSourceWith {
-          src = craneLib.path ./.;
-          filter = path: type: (craneLib.filterCargoSources path type) || (pkgs.lib.hasInfix ".cargo" path);
-        };
+        src = craneLib.cleanCargoSource ./.;
 
         commonArgs = rec {
-          src = cleanedSrc;
+          inherit src;
           strictDeps = true;
 
           doCheck = false;
 
+          cargoVendorDir = craneLib.vendorMultipleCargoDeps {
+            inherit (craneLib.findCargoFiles src) cargoConfigs;
+            cargoLockList = [
+              ./Cargo.lock
+              ./toolchain/Cargo.lock
+            ];
+          };
+
           buildInputs = with pkgs; [
             pkgsCross.avr.buildPackages.gcc
-            pkgsCross.avr.buildPackages.libc
           ];
 
           cargoExtraArgs = ''
-            --locked -Z build-std=core
-          '';
-          cargoCheckExtraArgs = ''
-            --target ${buildTarget} -Z build-std=core -Z build-std-features=""
+            --release -Z build-std=core -vv
           '';
 
           buildPhaseCargoCommand = ''
             cargo build ${cargoExtraArgs}
           '';
 
-          uselessExtraArgs = ''
-            --config profile.release.panic=\"abort\" --config 'build.rustflags=["-C", "target-cpu=atmega328p", "-C","panic=abort"]' --config 'target.avr-none.rustflags=["-C", "target-cpu=atmega328p", "-C","panic=abort"]'
-          '';
-
           env = {
             CARGO_BUILD_TARGET = "${buildTarget}";
-            RUSTCFLAGS = "-C panic=abort";
-            # CARGO_HOME = "/build/source/.cargo";
-            # CARGO_BUILD_INCREMENTAL = "false";
-            # CARGO_LOG = "cargo::core::compiler::fingerprint=trace,cargo_util::paths=trace";
+            CARGO_BUILD_INCREMENTAL = "false";
+            RUSTFLAGS = "-C target-cpu=atmega328p -C panic=abort";
+            CARGO_TARGET_AVR_NONE_LINKER = "${pkgs.pkgsCross.avr.stdenv.cc}/bin/${pkgs.pkgsCross.avr.stdenv.cc.targetPrefix}cc";
           };
         };
 
@@ -123,7 +119,20 @@
         crane-package = craneLib.buildPackage (
           commonArgs
           // {
-            # inherit cargoArtifacts;
+            inherit cargoArtifacts;
+
+            doNotPostBuildInstallCargoBinaries = true;
+
+            installPhaseCommand = ''
+              $preInstall
+
+              mkdir -p $out/bin
+
+              cp ./target/avr-none/release/blinkyy.elf $out/bin/.
+
+              $postInstall
+            '';
+
           }
         );
 
@@ -149,8 +158,15 @@
         };
 
         apps.default = flake-utils.lib.mkApp {
-          drv = pkgs.writeShellScriptBin "flash-arduino-uno" ''
-            ${pkgs.ravedude}/bin/ravedude -c -b 57600 $out/bin
+          # drv = pkgs.writeShellScriptBin "flash-arduino-uno" ''
+          #   ${pkgs.ravedude}/bin/ravedude -c -b 57600 $out/bin
+          # '';
+          drv = crane-package;
+        };
+
+        apps.updateSrc = flake-utils.lib.mkApp {
+          drv = pkgs.writeShellScriptBin "update-rust-src-lockfile" ''
+            cp "${rust-toolchain}"/lib/rustlib/src/rust/library/Cargo.lock ./toolchain/.
           '';
         };
 

@@ -2,8 +2,7 @@
 name = "blinkyy"
 version = "0.1.0"
 authors = ["of-the-stars <stellae.incaelis@gmail.com>"]
-edition = "2021"
-license = "MIT OR Apache-2.0"
+edition = "2024"
 
 [[bin]]
 bench = false
@@ -11,27 +10,30 @@ name = "blinkyy"
 test = false
 
 [dependencies]
-embedded-hal = "1.0"
-panic-halt = "1.0.0"
-ufmt = "0.2.0"
+embedded-hal = { version = "1.0", default-features = false, features = [] }
+panic-halt = { version = "1.0.0", default-features = false, features = [] }
+ufmt = { version = "0.2.0", default-features = false, features = [] }
 
-# addr2line = "0.25.1"
+# addr2line = { version = "0.25.1", default-features = false, features = [] }
 # dlmalloc_0_2_11 = { package = "dlmalloc", version = "=0.2.11" }
-# foldhash = "0.2.0"
-# fortanix-sgx-abi = "0.6.1"
-# getopts = "0.2.24"
-# hermit-abi = "0.5.2"
-# libc = "=0.2.178"
-# moto-rt = "0.16.0"
-# nb = "1.1.0"
-# object = "0.37.1"
-# r-efi = "5.3.0"
-# r-efi-alloc = "2.1.0"
+# foldhash = { version = "0.2.0", default-features = false, features = [] }
+# fortanix-sgx-abi = { version = "0.6.1", default-features = false, features = [] }
+# getopts = { version = "0.2.24", default-features = false, features = [] }
+# hermit-abi = { version = "0.5.2", default-features = false, features = [] }
+# libc = { version = "=0.2.178", default-features = false, features = [] }
+# miniz_oxide = { version "0.9.0", default-features = false, features = []}
+# moto-rt = { version = "0.16.0", default-features = false, features = [] }
+# nb = { version = "1.1.0", default-features = false, features = [] }
+# object = { version = "0.37.1", default-features = false, features = [] }
+# r-efi = { version = "5.3.0", default-features = false, features = [] }
+# r-efi-alloc = { version = "2.1.0", default-features = false, features = [] }
 # rustc-demangle = "0.1"
-# rustc-literal-escaper = "0.0.7"
-# unwinding = "0.2.8"
-# vex-sdk = "0.27.1"
-# wasi = "=0.14.4"
+# rustc-literal-escaper = { version = "0.0.7", default-features = false, features = [
+#
+# ] }
+# unwinding = { version = "0.2.8", default-features = false, features = [] }
+# vex-sdk = { version = "0.27.1", default-features = false, features = [] }
+# wasi = { version = "=0.14.4", default-features = false, features = [] }
 # wasi_0_11_0 = { package = "wasi", version = "0.11.0" }
 
 [dependencies.arduino-hal]
@@ -40,7 +42,7 @@ rev = "ff4909c00ceee76d60f8bd7cc95bc0f3e2ab673f"
 features = ["arduino-uno"]
 
 [build-dependencies]
-panic-halt = "1.0.0"
+panic-halt = { version = "1.0.0", default-features = false, features = [] }
 
 [build-dependencies.arduino-hal]
 git = "https://github.com/Rahix/avr-hal.git"
