@@ -1,4 +1,0 @@
-82c82
-< wasi = { version = "0.11.0", features = [
----
-> wasi = { version = "0.14.4", features = [
