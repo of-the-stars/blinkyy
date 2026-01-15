@@ -125,17 +125,25 @@
             doNotPostBuildInstallCargoBinaries = true;
 
             installPhaseCommand = ''
-              $preInstall
-
               mkdir -p $out/bin
 
-              cp ./target/avr-none/release/blinkyy.elf $out/bin/.
-
-              $postInstall
+              cp ./target/avr-none/release/blinkyy.elf $out/bin/binary.elf
             '';
 
           }
         );
+
+        flash-firmware = pkgs.writeShellApplication {
+          name = "blinkyy";
+
+          runtimeInputs = with pkgs; [
+            ravedude
+          ];
+
+          text = ''
+            ravedude -c -b 57600 ${crane-package}/bin/binary.elf
+          '';
+        };
 
       in
       {
@@ -165,22 +173,7 @@
           '';
         };
 
-        packages.default = pkgs.writeTextFile {
-          name = "blinkyy";
-          executable = true;
-          destination = "/bin/blinkyy";
-          text =
-            let
-              binPath = pkgs.lib.mkBinPath [
-                pkgs.ravedude
-              ];
-            in
-            ''
-              #!{pkgs.runtimeShell}
-              export PATH="${binPath}:$PATH"
-              ravedude -c -b 57600 $out/bin/blinkyy.elf
-            '';
-        };
+        packages.default = flash-firmware;
 
         formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
       }
