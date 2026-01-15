@@ -117,7 +117,7 @@
             doNotPostBuildInstallCargoBinaries = true;
             installPhaseCommand = ''
               mkdir -p $out/bin
-              cp ./target/avr-none/release/blinkyy.elf $out/bin/binary.elf
+              cp ./target/avr-none/release/*.elf $out/bin/binary.elf
             '';
           }
         );
