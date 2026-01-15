@@ -22,6 +22,9 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
+        # Defines package name
+        pname = "blinkyy";
+
         buildTarget = "avr-none";
 
         pkgs = import nixpkgs {
@@ -29,6 +32,7 @@
           overlays = [ (import rust-overlay) ];
         };
 
+        # Imports custom toolchain, or falls back to default
         rust-toolchain =
           if builtins.pathExists ./rust-toolchain.toml then
             pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml
@@ -40,16 +44,19 @@
               }
             );
 
+        # Instantiates custom craneLib using toolchain
         craneLib = (crane.mkLib pkgs).overrideToolchain rust-toolchain;
 
         src = craneLib.cleanCargoSource ./.;
 
+        # Common arguments shared between buildPackage and buildDepsOnly
         commonArgs = rec {
           inherit src;
           strictDeps = true;
 
           doCheck = false;
 
+          # Helps vendor 'core' so that all its dependencies can be found
           cargoVendorDir = craneLib.vendorMultipleCargoDeps {
             inherit (craneLib.findCargoFiles src) cargoConfigs;
             cargoLockList = [
@@ -62,31 +69,29 @@
             pkgsCross.avr.buildPackages.gcc
           ];
 
+          # '-Z build-std=core' is required because precompiled artifacts aren't available for avr-none
           cargoExtraArgs = ''
-            --release -Z build-std=core -vv
+            --release -Z build-std=core
           '';
 
+          # Skips 'cargo check' since avr-none is a 'no_std' environment
           buildPhaseCargoCommand = ''
             cargo build ${cargoExtraArgs}
           '';
 
           env = {
             CARGO_BUILD_TARGET = "${buildTarget}";
-            CARGO_BUILD_INCREMENTAL = "false";
+            # CARGO_BUILD_INCREMENTAL = "false";
             RUSTFLAGS = "-C target-cpu=atmega328p -C panic=abort";
-            # CARGO_TARGET_AVR_NONE_LINKER = "${pkgs.pkgsCross.avr.buildPackages.gcc}/bin/avr-gcc";
             CARGO_TARGET_AVR_NONE_LINKER = "${pkgs.pkgsCross.avr.stdenv.cc}/bin/${pkgs.pkgsCross.avr.stdenv.cc.targetPrefix}cc";
           };
         };
 
+        # Lets us reuse artifacts from the project dependencies
         cargoArtifacts = craneLib.buildDepsOnly (
           commonArgs
           // {
-            dummyBuildrs = pkgs.writeText "build.rs" ''
-              fn main() {
-                // println!("cargo::rustc-env=RUSTFLAGS=-C target-cpu=atmega328p -C panic=abort")
-              }
-            '';
+            # Works around Crane's opinionated dummy source, which doesn't work with the 'no_std' and 'no_main' modifiers
             dummyrs = pkgs.writeText "dummy.rs" ''
               #![no_main]
               #![no_std]
@@ -98,23 +103,8 @@
               fn main() -> ! {
                 loop { }
               }
-
-              // use core::panic::PanicInfo;
-
-              // #[inline(never)]
-              // #[panic_handler]
-              // fn panic(_info: &PanicInfo) -> ! {
-              //     loop {}
-              // }
-
-              // #[no_mangle]
-              // pub extern "C" fn _start() -> ! {
-              //     loop {}
-              // }
-
             '';
           }
-
         );
 
         crane-package = craneLib.buildPackage (
@@ -122,29 +112,25 @@
           // {
             inherit cargoArtifacts;
 
+            # We manage the installation of the resulting binary ourselves
             doNotPostBuildInstallCargoBinaries = true;
-
             installPhaseCommand = ''
               mkdir -p $out/bin
-
               cp ./target/avr-none/release/blinkyy.elf $out/bin/binary.elf
             '';
-
           }
         );
 
+        # We create a shell script to use Ravedude to flash the binary
         flash-firmware = pkgs.writeShellApplication {
-          name = "blinkyy";
-
+          name = pname;
           runtimeInputs = with pkgs; [
             ravedude
           ];
-
           text = ''
             ravedude -c -b 57600 ${crane-package}/bin/binary.elf
           '';
         };
-
       in
       {
         devShells.default = pkgs.mkShell {
@@ -153,26 +139,25 @@
 
           # Additional packages
           packages = with pkgs; [
-            rust-toolchain
             cargo-cache
-            # cargo-nono
           ];
 
           env = {
             CARGO_BUILD_TARGET = "avr-none";
+            # Needed for rust-analyzer
             RUST_SRC_PATH = "${rust-toolchain}/lib/rustlib/src/rust/library";
           };
-
-          shellHook = '''';
-
         };
 
+        # Shell script invoked via `nix run .#updateSrc` to keep the 'core' library lockfile up to date
+        # TODO: Make this more automatic while avoiding IFD
         apps.updateSrc = flake-utils.lib.mkApp {
           drv = pkgs.writeShellScriptBin "update-rust-src-lockfile" ''
             cp "${rust-toolchain}"/lib/rustlib/src/rust/library/Cargo.lock ./toolchain/.
           '';
         };
 
+        # Gives us a default package to use 'nix run with'
         packages.default = flash-firmware;
 
         formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;

@@ -1,22 +1,17 @@
-blinkyy
-=======
+# Blinkyy
 
-Rust project for the _Arduino Uno_.
+Blinkyy is the culmination of a weeks-long effort to be able to install Rust firmware for the Arduino Uno R3 from a remote source using Nix. It is your run of the mill LED blink program, but with superpowers.
 
-## Build Instructions
-1. Install prerequisites as described in the [`avr-hal` README] (`avr-gcc`, `avr-libc`, `avrdude`, [`ravedude`]).
+## Try with Nix
 
-2. Run `cargo build` to build the firmware.
+If you have Nix installed with flakes enabled, you can install this with a single command. Plug in your board, and run 
 
-3. Run `cargo run` to flash the firmware to a connected board.  If `ravedude`
-   fails to detect your board, check its documentation at
-   <https://crates.io/crates/ravedude>.
+```nix
+nix run 'github:of-the-stars/blinkyy'
+```
 
-4. `ravedude` will open a console session after flashing where you can interact
-   with the UART console of your board.
+This will flash the firmware to your board and make its LED flash every 10 seconds.
 
-[`avr-hal` README]: https://github.com/Rahix/avr-hal#readme
-[`ravedude`]: https://crates.io/crates/ravedude
 
 ## License
 Licensed under either of
