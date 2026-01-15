@@ -168,7 +168,7 @@
         packages.default = pkgs.writeTextFile {
           name = "blinkyy";
           executable = true;
-          destination = "/bin/blikyy";
+          destination = "/bin/blinkyy";
           text =
             let
               binPath = pkgs.lib.mkBinPath [
