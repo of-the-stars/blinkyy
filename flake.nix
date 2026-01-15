@@ -92,6 +92,7 @@
           commonArgs
           // {
             # Works around Crane's opinionated dummy source, which doesn't work with the 'no_std' and 'no_main' modifiers
+            dummyBuildrs = pkgs.writeText "build.rs" ''fn main () { }'';
             dummyrs = pkgs.writeText "dummy.rs" ''
               #![no_main]
               #![no_std]
