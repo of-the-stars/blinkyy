@@ -10,7 +10,7 @@ If you have Nix installed with flakes enabled, you can install this with a singl
 nix run 'github:of-the-stars/blinkyy'
 ```
 
-This will flash the firmware to your board and make its LED flash every 10 seconds.
+This will flash the firmware to your board and make its LED flash every 10 times a second.
 
 
 ## License
